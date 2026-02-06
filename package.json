@@ -1,6 +1,6 @@
 {
   "name": "ussyverse-monitor",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "Real-time monitoring dashboard for Ussyverse Hub sessions",
   "main": "main.js",
   "scripts": {
