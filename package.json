@@ -6,8 +6,10 @@
   "scripts": {
     "start": "electron . --no-sandbox",
     "dev": "electron . --dev --no-sandbox",
-    "build": "electron-builder --win",
-    "build:win": "electron-builder --win"
+    "build": "npm run build:win",
+    "build:win": "electron-builder --win --x64 --config package.json",
+    "build:portable": "electron-builder --win portable --config package.json",
+    "release": "npm run build:win"
   },
   "keywords": [
     "ussyverse",
@@ -31,8 +33,7 @@
       "output": "dist"
     },
     "win": {
-      "target": "nsis",
-      "icon": "icon.ico"
+      "target": ["nsis", "portable"]
     },
     "nsis": {
       "oneClick": false,
