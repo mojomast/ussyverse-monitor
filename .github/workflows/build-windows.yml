@@ -16,19 +16,45 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: 'npm'
 
+      - name: Print Node and NPM versions
+        run: |
+          echo "Node version: $(node --version)"
+          echo "NPM version: $(npm --version)"
+
       - name: Install dependencies
-        run: npm ci
+        run: |
+          echo "Installing dependencies..."
+          npm ci
+          echo "Dependencies installed successfully"
+
+      - name: Verify electron-builder installation
+        run: |
+          echo "Checking electron-builder..."
+          npx electron-builder --version
 
       - name: Ensure NSIS is available (for installer)
-        run: choco install nsis -y
+        run: |
+          echo "Installing NSIS..."
+          choco install nsis -y
+          echo "NSIS installed successfully"
 
       - name: Build Windows release
-        run: npm run build
+        run: |
+          echo "Starting Windows build..."
+          npm run build
+          echo "Build completed"
+
+      - name: List build output
+        run: |
+          echo "Build output:"
+          dir dist
+          echo "Files in dist:"
+          dir dist\*
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -36,3 +62,4 @@ jobs:
           name: windows-release
           path: dist/**
           retention-days: 7
+        if-no-files-found: warn

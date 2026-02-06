@@ -22,7 +22,6 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.js')
     },
     titleBarStyle: 'default',
-    icon: path.join(__dirname, 'icon.png'),
     show: false
   });
 

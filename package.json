@@ -6,10 +6,10 @@
   "scripts": {
     "start": "electron . --no-sandbox",
     "dev": "electron . --dev --no-sandbox",
-    "build": "npm run build:win",
-    "build:win": "electron-builder --win --x64 --config package.json",
-    "build:portable": "electron-builder --win portable --config package.json",
-    "release": "npm run build:win"
+    "build": "electron-builder --win --x64 --publish never",
+    "build:portable": "electron-builder --win portable --x64 --publish never",
+    "build:nsis": "electron-builder --win nsis --x64 --publish never",
+    "release": "npm run build:nsis && npm run build:portable"
   },
   "keywords": [
     "ussyverse",
@@ -28,12 +28,38 @@
   },
   "build": {
     "appId": "com.clawussy.usverse-monitor",
-    "productName": "Ussyverse Monitor",
+    "productName": "UsSyverse Monitor",
     "directories": {
       "output": "dist"
     },
+    "files": [
+      "**/*",
+      "!**/node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme}",
+      "!**/node_modules/*/{test,__tests__,tests,powered-test,example,examples}",
+      "!**/node_modules/*.d.ts",
+      "!**/node_modules/.bin",
+      "!**/*.{iml,o,hprof,orig,projectx,swp}",
+      "!**/._*",
+      "!**/{.DS_Store,.git,.hg,.svn,CVS,RCS,SCCS,.gitignore,.gitattributes}",
+      "!**/{__pycache__,thumbs.db,.flowconfig,.idea,.vs,.nyc_output}",
+      "!**/{appveyor.yml,.travis.yml,circle.yml}",
+      "!**/{npm-debug.log,yarn.lock,.yarn-integrity,.yarn-metadata.yml}"
+    ],
     "win": {
-      "target": ["nsis", "portable"]
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
     },
     "nsis": {
       "oneClick": false,
