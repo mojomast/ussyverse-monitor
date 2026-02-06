@@ -4,6 +4,12 @@ A beautiful, real-time desktop monitoring application for the Ussyverse Hub runn
 
 ![Ussyverse Monitor](https://img.shields.io/badge/version-0.1.0-blue)
 
+## Download
+
+**Latest Release: v0.1** - Windows standalone application available
+
+Download the latest Windows release from the [Releases](https://github.com/mojomast/ussyverse-monitor/releases) page.
+
 ## Features
 
 ### Real-Time Monitoring
