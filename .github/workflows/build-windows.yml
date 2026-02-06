@@ -57,9 +57,9 @@ jobs:
           dir dist\*
 
       - name: Upload artifacts
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: windows-release
           path: dist/**
           retention-days: 7
-        if-no-files-found: warn
