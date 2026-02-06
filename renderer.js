@@ -1,6 +1,7 @@
 // Ussyverse Monitor - Renderer Process
 
-const HUB_URL = 'http://localhost:3002';
+let HUB_IP = 'localhost';
+let HUB_PORT = 3002;
 let eventSource = null;
 let currentSession = null;
 let sessions = [];
@@ -13,16 +14,85 @@ let isLoadingSession = false; // Prevent concurrent loads
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
+  loadConfig();
   initializeEventListeners();
   connectToHub();
   loadSessions();
 });
 
+// Load configuration from main process
+async function loadConfig() {
+  try {
+    const config = await window.electronAPI.getConfig();
+    if (config) {
+      HUB_IP = config.hubIP || 'localhost';
+      HUB_PORT = config.hubPort || 3002;
+      
+      // Update UI elements if they exist
+      const ipInput = document.getElementById('hub-ip');
+      const portInput = document.getElementById('hub-port');
+      if (ipInput) ipInput.value = HUB_IP;
+      if (portInput) portInput.value = HUB_PORT;
+      
+      console.log('Loaded config:', { HUB_IP, HUB_PORT });
+    }
+  } catch (error) {
+    console.error('Error loading config:', error);
+    showNotification('Failed to load configuration', 'warning');
+  }
+}
+
+// Helper to get hub URL
+function getHubURL() {
+  return \`http://\${HUB_IP}:\${HUB_PORT}\`;
+}
+
 // Initialize Event Listeners
 function initializeEventListeners() {
+  // Config UI handlers
+  const saveConfigBtn = document.getElementById('save-config');
+  const testConnectionBtn = document.getElementById('test-connection');
+  
+  if (saveConfigBtn) {
+    saveConfigBtn.addEventListener('click', async () => {
+      const ipInput = document.getElementById('hub-ip');
+      const portInput = document.getElementById('hub-port');
+      
+      const newConfig = {
+        hubIP: ipInput.value.trim(),
+        hubPort: parseInt(portInput.value) || 3002
+      };
+      
+      const result = await window.electronAPI.saveConfig(newConfig);
+      
+      if (result.success) {
+        showNotification('Configuration saved successfully', 'success');
+        HUB_IP = newConfig.hubIP;
+        HUB_PORT = newConfig.hubPort;
+        
+        // Reconnect with new config
+        connectToHub();
+      } else {
+        showNotification('Failed to save configuration: ' + (result.error || 'Unknown error'), 'danger');
+      }
+    });
+  }
+  
+  if (testConnectionBtn) {
+    testConnectionBtn.addEventListener('click', async () => {
+      const result = await window.electronAPI.testConnection();
+      
+      if (result.connected) {
+        showNotification('Successfully connected to hub', 'success');
+      } else {
+        showNotification('Connection failed: ' + (result.error || 'Unknown error'), 'danger');
+      }
+    });
+  }
+  
   // Emergency Stop Button
   document.getElementById('emergency-stop').addEventListener('click', async () => {
-    if (confirm('Are you sure you want to STOP the bot? This will terminate all agent processes.')) {
+    if (confirm('Are you sure you want to STOP bot? This will terminate all agent processes.')) {
       const result = await window.electronAPI.emergencyStop();
       if (result.success) {
         showNotification('Emergency Stop Triggered', 'danger');
@@ -36,8 +106,7 @@ function initializeEventListeners() {
   document.getElementById('export-btn').addEventListener('click', exportToHTML);
 
   // Send Message Button
-  document.getElementById('send-btn').addEventListener('click', sendMessage);
-  
+  document.getElementById('send-btn').addEventListener('click', sendMessage);  
   // Message Input - Ctrl+Enter to send
   document.getElementById('message-input').addEventListener('keydown', (e) => {
     if (e.ctrlKey && e.key === 'Enter') {
@@ -79,9 +148,9 @@ function initializeEventListeners() {
 
 // Connect to Hub via SSE
 function connectToHub() {
-  updateStatus('connecting', 'Connecting...');
-  
-  eventSource = new EventSource(HUB_URL + '/api/events');
+  updateStatus('connecting', 'Connecting...');  
+  const hubURL = getHubURL();
+  eventSource = new EventSource(hubURL + '/api/events');
   
   eventSource.onopen = () => {
     updateStatus('connected', 'Connected');
@@ -131,8 +200,7 @@ function connectToHub() {
 // Update Connection Status
 function updateStatus(status, text) {
   const dot = document.getElementById('status-dot');
-  const statusText = document.getElementById('status-text');
-  
+  const statusText = document.getElementById('status-text');  
   dot.className = 'status-dot';
   if (status === 'connected') {
     dot.classList.add('connected');
@@ -144,7 +212,8 @@ function updateStatus(status, text) {
 // Load Sessions List
 async function loadSessions() {
   try {
-    const response = await fetch(HUB_URL + '/api/sessions');
+    const hubURL = getHubURL();
+    const response = await fetch(hubURL + '/api/sessions');
     const data = await response.json();
     sessions = data.sessions || [];
     
@@ -153,25 +222,25 @@ async function loadSessions() {
     const listEl = document.getElementById('session-list');
     
     if (sessions.length === 0) {
-      listEl.innerHTML = `
+      listEl.innerHTML = \`
         <div class="empty-state">
           <div class="empty-icon">📋</div>
           <div class="empty-text">No active sessions</div>
         </div>
-      `;
+      \`;
       return;
     }
     
-    listEl.innerHTML = sessions.map(s => `
-      <div class="session-item ${currentSession === s.id ? 'active' : ''}" 
-           onclick="loadSessionById('${s.id}')">
-        <div class="session-title">${escapeHtml(s.title || s.id)}</div>
+    listEl.innerHTML = sessions.map(s => \`
+      <div class="session-item \${currentSession === s.id ? 'active' : ''}" 
+           onclick="loadSessionById('\${s.id}')">
+        <div class="session-title">\${escapeHtml(s.title || s.id)}</div>
         <div class="session-meta">
-          <span>${(s.size / 1024).toFixed(1)} KB</span>
-          <span>${new Date(s.modified).toLocaleTimeString()}</span>
+          <span>\${(s.size / 1024).toFixed(1)} KB</span>
+          <span>\${new Date(s.modified).toLocaleTimeString()}</span>
         </div>
       </div>
-    `).join('');
+    \`).join('');
   } catch (error) {
     console.error('Error loading sessions:', error);
     showNotification('Failed to load sessions', 'danger');
@@ -183,8 +252,7 @@ window.loadSessionById = function(id) {
   currentSession = id;
   lastMessageCount = 0; // Reset counter for new session
   sessionContent = '';  // Clear stored content
-  loadSession(id);
-  
+  loadSession(id);  
   // Update active state in sidebar
   document.querySelectorAll('.session-item').forEach(item => {
     item.classList.remove('active');
@@ -198,7 +266,8 @@ async function loadSession(id) {
   isLoadingSession = true;
   
   try {
-    const response = await fetch(HUB_URL + '/api/sessions/' + id);
+    const hubURL = getHubURL();
+    const response = await fetch(hubURL + '/api/sessions/' + id);
     const data = await response.json();
     
     sessionContent = data.content;
@@ -218,7 +287,8 @@ async function loadSessionIncremental(id) {
   isLoadingSession = true;
   
   try {
-    const response = await fetch(HUB_URL + '/api/sessions/' + id);
+    const hubURL = getHubURL();
+    const response = await fetch(hubURL + '/api/sessions/' + id);
     const data = await response.json();
     
     // Check if content has changed
@@ -239,15 +309,15 @@ async function loadSessionIncremental(id) {
 // Render Session Content
 function renderSession(content, incremental = false) {
   const container = document.getElementById('chat-container');
-  const lines = content.split('\n').filter(l => l.trim());
+  const lines = content.split('\\n').filter(l => l.trim());
   
   if (lines.length === 0) {
-    container.innerHTML = `
+    container.innerHTML = \`
       <div class="empty-state">
         <div class="empty-icon">💬</div>
         <div class="empty-text">No messages in this session</div>
       </div>
-    `;
+    \`;
     lastMessageCount = 0;
     return;
   }
@@ -263,7 +333,7 @@ function renderSession(content, incremental = false) {
   // Incremental update: only append new messages
   if (incremental && messages.length > lastMessageCount) {
     const newMessages = messages.slice(lastMessageCount);
-    console.log(`Appending ${newMessages.length} new messages (${lastMessageCount} -> ${messages.length})`);
+    console.log(\`Appending \${newMessages.length} new messages (\${lastMessageCount} -> \${messages.length})\`);
     
     newMessages.forEach((entry, idx) => {
       const actualIndex = lastMessageCount + idx;
@@ -280,7 +350,7 @@ function renderSession(content, incremental = false) {
   }
   
   // Full render: replace everything
-  console.log(`Full render: ${messages.length} messages`);
+  console.log(\`Full render: \${messages.length} messages\`);
   container.innerHTML = messages.map((entry, index) => 
     createMessageBubble(entry, index)
   ).join('');
@@ -304,33 +374,33 @@ function createMessageBubble(entry, index) {
     contentText = msg.content
       .filter(c => c.type === 'text')
       .map(c => c.text || '')
-      .join('\n');
+      .join('\\n');
   } else {
     contentText = msg.content || '';
   }
   
   // Check if content should be truncated
-  const lineCount = contentText.split('\n').length;
+  const lineCount = contentText.split('\\n').length;
   const shouldTruncate = lineCount > maxLines;
   
-  return `
-    <div class="chat-bubble ${role}" style="animation-delay: ${(index % 10) * 0.05}s" data-index="${index}">
+  return \`
+    <div class="chat-bubble \${role}" style="animation-delay: \${(index % 10) * 0.05}s" data-index="\${index}">
       <div class="chat-header">
-        <span class="chat-role">${role.toUpperCase()}</span>
-        <span class="chat-time">${timestamp}</span>
+        <span class="chat-role">\${role.toUpperCase()}</span>
+        <span class="chat-time">\${timestamp}</span>
       </div>
-      <div class="chat-content ${shouldTruncate ? 'truncated' : ''}" 
-           id="content-${index}" 
-           style="max-height: ${shouldTruncate ? (maxLines * fontSize * 1.6) + 'px' : 'none'}">
-        ${renderMarkdown(contentText)}
+      <div class="chat-content \${shouldTruncate ? 'truncated' : ''}" 
+           id="content-\${index}" 
+           style="max-height: \${shouldTruncate ? (maxLines * fontSize * 1.6) + 'px' : 'none'}">
+        \${renderMarkdown(contentText)}
       </div>
-      ${shouldTruncate ? `
-        <button class="expand-btn" onclick="toggleExpand('content-${index}', this)">
+      \${shouldTruncate ? \`
+        <button class="expand-btn" onclick="toggleExpand('content-\${index}', this)">
           Show More
         </button>
-      ` : ''}
+      \` : ''}
     </div>
-  `;
+  \`;
 }
 
 // Toggle Expand/Collapse
@@ -354,24 +424,24 @@ function renderMarkdown(text) {
   let html = escapeHtml(text);
   
   // Code blocks
-  html = html.replace(/```(\w+)?\n([\s\S]*?)```/g, (match, lang, code) => {
-    return `<pre><code>${code}</code></pre>`;
+  html = html.replace(/\`\`\`(\w+)?\\n([\s\S]*?)\`\`\`/g, (match, lang, code) => {
+    return \`<pre><code>\${code}</code></pre>\`;
   });
   
   // Inline code
-  html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+  html = html.replace(/\`([^\`]+)\`/g, '<code>$1</code>');
   
   // Bold
-  html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  html = html.replace(/\*\*([^\*]+)\*\*/g, '<strong>$1</strong>');
   
   // Italic
-  html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+  html = html.replace(/\*([^\*]+)\*/g, '<em>$1</em>');
   
   // Links
   html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
   
   // Line breaks
-  html = html.replace(/\n/g, '<br>');
+  html = html.replace(/\\n/g, '<br>');
   
   return html;
 }
@@ -417,9 +487,10 @@ async function exportToHTML() {
   }
   
   try {
-    const response = await fetch(HUB_URL + '/api/sessions/' + currentSession);
+    const hubURL = getHubURL();
+    const response = await fetch(hubURL + '/api/sessions/' + currentSession);
     const data = await response.json();
-    const lines = data.content.split('\n').filter(l => l.trim());
+    const lines = data.content.split('\\n').filter(l => l.trim());
     
     const messages = lines.map(line => {
       try {
@@ -430,13 +501,13 @@ async function exportToHTML() {
     }).filter(m => m && m.type === 'message' && m.message);
     
     // Create beautiful HTML export
-    const html = `
+    const html = \`
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Session Export - ${currentSession}</title>
+  <title>Session Export - \${currentSession}</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -529,11 +600,11 @@ async function exportToHTML() {
   <div class="container">
     <div class="header">
       <h1>Ussyverse Session Export</h1>
-      <p>Session: ${escapeHtml(currentSession)}</p>
-      <p>Exported: ${new Date().toLocaleString()}</p>
+      <p>Session: \${escapeHtml(currentSession)}</p>
+      <p>Exported: \${new Date().toLocaleString()}</p>
     </div>
     <div class="messages">
-      ${messages.map(entry => {
+      \${messages.map(entry => {
         const msg = entry.message;
         const role = msg.role || 'unknown';
         const timestamp = new Date(entry.timestamp).toLocaleString();
@@ -543,20 +614,20 @@ async function exportToHTML() {
           contentText = msg.content
             .filter(c => c.type === 'text')
             .map(c => c.text || '')
-            .join('\n');
+            .join('\\n');
         } else {
           contentText = msg.content || '';
         }
         
-        return `
-          <div class="message ${role}">
+        return \`
+          <div class="message \${role}">
             <div class="message-header">
-              <span class="role">${role}</span>
-              <span class="timestamp">${timestamp}</span>
+              <span class="role">\${role}</span>
+              <span class="timestamp">\${timestamp}</span>
             </div>
-            <div class="content">${renderMarkdown(contentText)}</div>
+            <div class="content">\${renderMarkdown(contentText)}</div>
           </div>
-        `;
+        \`;
       }).join('')}
     </div>
     <div class="footer">
@@ -565,14 +636,14 @@ async function exportToHTML() {
   </div>
 </body>
 </html>
-    `.trim();
+    \`.trim();
     
     // Create download
     const blob = new Blob([html], { type: 'text/html' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `session-${currentSession.split('.')[0]}-${Date.now()}.html`;
+    a.download = \`session-\${currentSession.split('.')[0]}-\${Date.now()}.html\`;
     a.click();
     URL.revokeObjectURL(url);
     
@@ -587,11 +658,11 @@ async function exportToHTML() {
 function showNotification(message, type = 'info') {
   // Create toast notification
   const toast = document.createElement('div');
-  toast.style.cssText = `
+  toast.style.cssText = \`
     position: fixed;
     top: 80px;
     right: 20px;
-    background: ${type === 'success' ? '#10b981' : type === 'danger' ? '#ef4444' : '#f59e0b'};
+    background: \${type === 'success' ? '#10b981' : type === 'danger' ? '#ef4444' : '#f59e0b'};
     color: white;
     padding: 16px 24px;
     border-radius: 8px;
@@ -601,7 +672,7 @@ function showNotification(message, type = 'info') {
     max-width: 400px;
     font-size: 14px;
     font-weight: 600;
-  `;
+  \`;
   toast.textContent = message;
   
   document.body.appendChild(toast);

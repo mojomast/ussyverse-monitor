@@ -530,7 +530,108 @@
       margin: 12px 0;
       color: var(--text-secondary);
     }
-  </style>
+  
+/* Settings Panel */
+.settings-panel {
+  display: none;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--bg-secondary);
+  border: 2px solid var(--border-color);
+  border-radius: 16px;
+  padding: 32px;
+  box-shadow: var(--shadow-lg);
+  z-index: 1000;
+  min-width: 400px;
+}
+
+.settings-panel.active {
+  display: block;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translate(-50%, -45%); }
+  to { opacity: 1; transform: translate(-50%, -50%); }
+}
+
+.settings-panel h2 {
+  margin: 0 0 24px 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.settings-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-group label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.form-group input {
+  padding: 10px 14px;
+  background: var(--bg-tertiary);
+  border: 2px solid var(--border-color);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-size: 14px;
+  font-family: inherit;
+  transition: all 0.2s ease;
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px rgba(0, 217, 255, 0.1);
+}
+
+.form-group input::placeholder {
+  color: var(--text-muted);
+}
+
+.settings-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.settings-actions .btn {
+  flex: 1;
+  justify-content: center;
+}
+
+.settings-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 999;
+}
+
+.settings-overlay.active {
+  display: block;
+}
+
+</style>
 </head>
 <body>
   <!-- Header -->
@@ -544,6 +645,19 @@
     </div>
     <div class="header-controls">
       <button class="btn btn-secondary" id="export-btn">
+<button class="btn btn-secondary" id="settings-btn">
+  <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.446 2.317-3.007 2.317-5.004 0-2.374-1.891-4.237-2.107-5.004m-3.432-2.85-3.432-7.826 0-4.976 3.434-7.826 8.672 0 4.976 3.432 7.826 8.672zM12 6a4 4 0 1 0 0-8 0 4 4 0 0 0 0 8zm0 0a9 9 0 1 1 0 0-18 0 9 9 0 0 1 0 0 18z" />
+  </svg>
+  Settings
+</button>
+\
+<button\ class="btn\ btn\-secondary"\ id="settings\-btn">\
+\ \ <svg\ class="icon"\ fill="none"\ stroke="currentColor"\ viewBox="0\ 0\ 24\ 24">\
+\ \ \ \ <path\ stroke\-linecap="round"\ stroke\-linejoin="round"\ stroke\-width="2"\ d="M10\.325\ 4\.317c\.426\-1\.426\ 2\.317\-7\.07\ 2\.317\-9\.815s\-7\.083\-5\.328\-11\.356\-4\.317\-14\.283c\-4\.426\-5\.313\-5\.328\-10\.568\-2\.05\-13\.233\-4\.735\ 4\.735\-10\.487\ 4\.735\-4\.625\ 0\-9\.815\ 0\-9\.815\-4\.426\ 0\-8\.06\ 2\.657\-8\.06\ 6\.793s1\.429\ 2\.991\ 6\.279\ 4\.417\ 7\.865\.724\ 11\.965\.708\ 14\.016\-9\.815c0\-\.838\-\.846\-2\.3\-3\.735\-2\.68\-4\.37\ 1\.705\ 1\.705\ 2\.68\-2\.096\ 2\.283\-1\.823\-4\.625\-1\.823\-7\.936\ 0\-9\.233\-1\.946\-10\.414\ 2\.053\-10\.414\ 5\.323\ 0\ 1\.429\-6\.279\ 4\.417\-9\.815\.708\-14\.016z"\ />\
+\ \ </svg>\
+\ \ Settings\
+</button>
         <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
         </svg>
@@ -626,6 +740,48 @@
     </div>
   </div>
 
-  <script src="renderer.js"></script>
+  
+<!-- Settings Panel Overlay -->
+<div class="settings-overlay" id="settings-overlay"></div>
+
+<!-- Settings Panel -->
+<div class="settings-panel" id="settings-panel">
+  <h2>⚙️ Hub Connection Settings</h2>
+  
+  <div class="settings-form">
+    <div class="form-group">
+      <label for="hub-ip">Hub IP Address</label>
+      <input type="text" id="hub-ip" placeholder="localhost" />
+    </div>
+    
+    <div class="form-group">
+      <label for="hub-port">Hub Port</label>
+      <input type="number" id="hub-port" placeholder="3002" />
+    </div>
+  </div>
+  
+  <div class="settings-actions">
+    <button class="btn btn-primary" id="save-config">
+      <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2v10m-8-8-3-8H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2v10m0 0h4m-8-8-3-8H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2v10m-4-4-4-4H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2v10m0 0h2" />
+      </svg>
+      Save & Reconnect
+    </button>
+    <button class="btn btn-secondary" id="test-connection">
+      <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17l5 5 5 5-5m-5-5 1.414 1.414L9 20l-7.07-7.07M18 6.577 6.577 7.07 7.07 18-6.577-2.303-2.303-7.07-7.07-7.07 7.07-2.303 2.303 7.07 7.07 7.07zM16.172 16.172l-3.172-3.172a4 4 0 1 1-5.656 0 5.656 5.656 5.656 5.656 5.656-5.656-5.656l3.172 3.172a4 4 0 1 1 5.656 0 5.656-5.656 5.656-5.656-5.656 5.656-5.656-5.656 5.656-5.656z" />
+      </svg>
+      Test Connection
+    </button>
+    <button class="btn btn-secondary" id="close-settings">
+      <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 6L6 18M6 6l12 12M6 6v10m0-2V6m0 2l12 12" />
+      </svg>
+      Close
+    </button>
+  </div>
+</div>
+
+<script src="renderer.js"></script>
 </body>
 </html>
