@@ -2,7 +2,7 @@
 
 A beautiful, real-time desktop monitoring application for the Ussyverse Hub running at port 3002. Monitor your AI agent sessions live with a visually appealing interface.
 
-![Ussyverse Monitor](https://img.shields.io/badge/version-1.0.0-blue)
+![Ussyverse Monitor](https://img.shields.io/badge/version-0.1.0-blue)
 
 ## Features
 
