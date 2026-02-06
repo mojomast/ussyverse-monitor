@@ -44,11 +44,39 @@ async function loadConfig() {
 
 // Helper to get hub URL
 function getHubURL() {
-  return \`http://\${HUB_IP}:\${HUB_PORT}\`;
+  return `http://${HUB_IP}:${HUB_PORT}`;
 }
 
 // Initialize Event Listeners
 function initializeEventListeners() {
+  // Settings Panel Toggle
+  const settingsBtn = document.getElementById('settings-btn');
+  const closeSettingsBtn = document.getElementById('close-settings');
+  const settingsPanel = document.getElementById('settings-panel');
+  const settingsOverlay = document.getElementById('settings-overlay');
+
+  function toggleSettings(show) {
+    if (show) {
+      settingsPanel.classList.add('active');
+      settingsOverlay.classList.add('active');
+    } else {
+      settingsPanel.classList.remove('active');
+      settingsOverlay.classList.remove('active');
+    }
+  }
+
+  if (settingsBtn) {
+    settingsBtn.addEventListener('click', () => toggleSettings(true));
+  }
+
+  if (closeSettingsBtn) {
+    closeSettingsBtn.addEventListener('click', () => toggleSettings(false));
+  }
+
+  if (settingsOverlay) {
+    settingsOverlay.addEventListener('click', () => toggleSettings(false));
+  }
+
   // Config UI handlers
   const saveConfigBtn = document.getElementById('save-config');
   const testConnectionBtn = document.getElementById('test-connection');
@@ -222,25 +250,25 @@ async function loadSessions() {
     const listEl = document.getElementById('session-list');
     
     if (sessions.length === 0) {
-      listEl.innerHTML = \`
+      listEl.innerHTML = `
         <div class="empty-state">
           <div class="empty-icon">📋</div>
           <div class="empty-text">No active sessions</div>
         </div>
-      \`;
+      `;
       return;
     }
     
-    listEl.innerHTML = sessions.map(s => \`
-      <div class="session-item \${currentSession === s.id ? 'active' : ''}" 
-           onclick="loadSessionById('\${s.id}')">
-        <div class="session-title">\${escapeHtml(s.title || s.id)}</div>
+    listEl.innerHTML = sessions.map(s => `
+      <div class="session-item ${currentSession === s.id ? 'active' : ''}"
+           onclick="loadSessionById('${s.id}')">
+        <div class="session-title">${escapeHtml(s.title || s.id)}</div>
         <div class="session-meta">
-          <span>\${(s.size / 1024).toFixed(1)} KB</span>
-          <span>\${new Date(s.modified).toLocaleTimeString()}</span>
+          <span>${(s.size / 1024).toFixed(1)} KB</span>
+          <span>${new Date(s.modified).toLocaleTimeString()}</span>
         </div>
       </div>
-    \`).join('');
+    `).join('');
   } catch (error) {
     console.error('Error loading sessions:', error);
     showNotification('Failed to load sessions', 'danger');
@@ -312,12 +340,12 @@ function renderSession(content, incremental = false) {
   const lines = content.split('\\n').filter(l => l.trim());
   
   if (lines.length === 0) {
-    container.innerHTML = \`
+    container.innerHTML = `
       <div class="empty-state">
         <div class="empty-icon">💬</div>
         <div class="empty-text">No messages in this session</div>
       </div>
-    \`;
+    `;
     lastMessageCount = 0;
     return;
   }
@@ -333,7 +361,7 @@ function renderSession(content, incremental = false) {
   // Incremental update: only append new messages
   if (incremental && messages.length > lastMessageCount) {
     const newMessages = messages.slice(lastMessageCount);
-    console.log(\`Appending \${newMessages.length} new messages (\${lastMessageCount} -> \${messages.length})\`);
+    console.log(`Appending ${newMessages.length} new messages (${lastMessageCount} -> ${messages.length})`);
     
     newMessages.forEach((entry, idx) => {
       const actualIndex = lastMessageCount + idx;
@@ -350,7 +378,7 @@ function renderSession(content, incremental = false) {
   }
   
   // Full render: replace everything
-  console.log(\`Full render: \${messages.length} messages\`);
+  console.log(`Full render: ${messages.length} messages`);
   container.innerHTML = messages.map((entry, index) => 
     createMessageBubble(entry, index)
   ).join('');
@@ -383,24 +411,24 @@ function createMessageBubble(entry, index) {
   const lineCount = contentText.split('\\n').length;
   const shouldTruncate = lineCount > maxLines;
   
-  return \`
-    <div class="chat-bubble \${role}" style="animation-delay: \${(index % 10) * 0.05}s" data-index="\${index}">
+  return `
+    <div class="chat-bubble ${role}" style="animation-delay: ${(index % 10) * 0.05}s" data-index="${index}">
       <div class="chat-header">
-        <span class="chat-role">\${role.toUpperCase()}</span>
-        <span class="chat-time">\${timestamp}</span>
+        <span class="chat-role">${role.toUpperCase()}</span>
+        <span class="chat-time">${timestamp}</span>
       </div>
-      <div class="chat-content \${shouldTruncate ? 'truncated' : ''}" 
-           id="content-\${index}" 
-           style="max-height: \${shouldTruncate ? (maxLines * fontSize * 1.6) + 'px' : 'none'}">
-        \${renderMarkdown(contentText)}
+      <div class="chat-content ${shouldTruncate ? 'truncated' : ''}"
+           id="content-${index}"
+           style="max-height: ${shouldTruncate ? (maxLines * fontSize * 1.6) + 'px' : 'none'}">
+        ${renderMarkdown(contentText)}
       </div>
-      \${shouldTruncate ? \`
-        <button class="expand-btn" onclick="toggleExpand('content-\${index}', this)">
+      ${shouldTruncate ? `
+        <button class="expand-btn" onclick="toggleExpand('content-${index}', this)">
           Show More
         </button>
-      \` : ''}
+      ` : ''}
     </div>
-  \`;
+  `;
 }
 
 // Toggle Expand/Collapse
@@ -424,12 +452,12 @@ function renderMarkdown(text) {
   let html = escapeHtml(text);
   
   // Code blocks
-  html = html.replace(/\`\`\`(\w+)?\\n([\s\S]*?)\`\`\`/g, (match, lang, code) => {
-    return \`<pre><code>\${code}</code></pre>\`;
+  html = html.replace(/```(\w+)?\\n([\s\S]*?)```/g, (match, lang, code) => {
+    return `<pre><code>${code}</code></pre>`;
   });
   
   // Inline code
-  html = html.replace(/\`([^\`]+)\`/g, '<code>$1</code>');
+  html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
   
   // Bold
   html = html.replace(/\*\*([^\*]+)\*\*/g, '<strong>$1</strong>');
@@ -501,13 +529,13 @@ async function exportToHTML() {
     }).filter(m => m && m.type === 'message' && m.message);
     
     // Create beautiful HTML export
-    const html = \`
+    const html = `
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Session Export - \${currentSession}</title>
+  <title>Session Export - ${currentSession}</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -600,11 +628,11 @@ async function exportToHTML() {
   <div class="container">
     <div class="header">
       <h1>Ussyverse Session Export</h1>
-      <p>Session: \${escapeHtml(currentSession)}</p>
-      <p>Exported: \${new Date().toLocaleString()}</p>
+      <p>Session: ${escapeHtml(currentSession)}</p>
+      <p>Exported: ${new Date().toLocaleString()}</p>
     </div>
     <div class="messages">
-      \${messages.map(entry => {
+      ${messages.map(entry => {
         const msg = entry.message;
         const role = msg.role || 'unknown';
         const timestamp = new Date(entry.timestamp).toLocaleString();
@@ -619,15 +647,15 @@ async function exportToHTML() {
           contentText = msg.content || '';
         }
         
-        return \`
-          <div class="message \${role}">
+        return `
+          <div class="message ${role}">
             <div class="message-header">
-              <span class="role">\${role}</span>
-              <span class="timestamp">\${timestamp}</span>
+              <span class="role">${role}</span>
+              <span class="timestamp">${timestamp}</span>
             </div>
-            <div class="content">\${renderMarkdown(contentText)}</div>
+            <div class="content">${renderMarkdown(contentText)}</div>
           </div>
-        \`;
+        `;
       }).join('')}
     </div>
     <div class="footer">
@@ -636,14 +664,14 @@ async function exportToHTML() {
   </div>
 </body>
 </html>
-    \`.trim();
+    `.trim();
     
     // Create download
     const blob = new Blob([html], { type: 'text/html' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = \`session-\${currentSession.split('.')[0]}-\${Date.now()}.html\`;
+    a.download = `session-${currentSession.split('.')[0]}-${Date.now()}.html`;
     a.click();
     URL.revokeObjectURL(url);
     
@@ -658,11 +686,11 @@ async function exportToHTML() {
 function showNotification(message, type = 'info') {
   // Create toast notification
   const toast = document.createElement('div');
-  toast.style.cssText = \`
+  toast.style.cssText = `
     position: fixed;
     top: 80px;
     right: 20px;
-    background: \${type === 'success' ? '#10b981' : type === 'danger' ? '#ef4444' : '#f59e0b'};
+    background: ${type === 'success' ? '#10b981' : type === 'danger' ? '#ef4444' : '#f59e0b'};
     color: white;
     padding: 16px 24px;
     border-radius: 8px;
@@ -672,7 +700,7 @@ function showNotification(message, type = 'info') {
     max-width: 400px;
     font-size: 14px;
     font-weight: 600;
-  \`;
+  `;
   toast.textContent = message;
   
   document.body.appendChild(toast);
