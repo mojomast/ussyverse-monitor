@@ -11,6 +11,7 @@ let fontSize = 14;
 let lastMessageCount = 0; // Track how many messages we've already rendered
 let sessionContent = '';   // Store full session content
 let isLoadingSession = false; // Prevent concurrent loads
+let reconnectTimeout = null; // Track reconnection timer
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
@@ -176,53 +177,88 @@ function initializeEventListeners() {
 
 // Connect to Hub via SSE
 function connectToHub() {
+  // Clear any pending reconnect
+  if (reconnectTimeout) {
+    clearTimeout(reconnectTimeout);
+    reconnectTimeout = null;
+  }
+
+  // Close existing connection to prevent leaks
+  if (eventSource) {
+    console.log('Closing existing EventSource connection...');
+    eventSource.close();
+    eventSource = null;
+  }
+
   updateStatus('connecting', 'Connecting...');  
   const hubURL = getHubURL();
-  eventSource = new EventSource(hubURL + '/api/events');
   
-  eventSource.onopen = () => {
-    updateStatus('connected', 'Connected');
-    console.log('Connected to Hub');
-  };
-  
-  eventSource.onerror = (error) => {
-    updateStatus('disconnected', 'Disconnected');
-    console.error('SSE Error:', error);
+  try {
+    eventSource = new EventSource(hubURL + '/api/events');
     
-    // Attempt reconnection after 5 seconds
-    setTimeout(() => {
-      console.log('Attempting to reconnect...');
-      connectToHub();
-    }, 5000);
-  };
-  
-  eventSource.addEventListener('initial', (event) => {
-    const data = JSON.parse(event.data);
-    console.log('Initial data received:', data);
-  });
-  
-  eventSource.addEventListener('log', (event) => {
-    const data = JSON.parse(event.data);
-    console.log('Log event:', data);
-  });
-  
-  eventSource.addEventListener('session', (event) => {
-    const data = JSON.parse(event.data);
-    console.log('Session update:', data);
+    eventSource.onopen = () => {
+      updateStatus('connected', 'Connected');
+      console.log('Connected to Hub');
+    };
     
-    // If this is the currently viewed session, refresh it incrementally
-    if (currentSession && data.id === currentSession) {
-      loadSessionIncremental(currentSession);
+    eventSource.onerror = (error) => {
+      updateStatus('disconnected', 'Disconnected');
+      console.error('SSE Error:', error);
+
+      if (eventSource) {
+        eventSource.close();
+        eventSource = null;
+      }
+
+      // Attempt reconnection after 5 seconds
+      if (!reconnectTimeout) {
+        reconnectTimeout = setTimeout(() => {
+          reconnectTimeout = null;
+          console.log('Attempting to reconnect...');
+          connectToHub();
+        }, 5000);
+      }
+    };
+    
+    eventSource.addEventListener('initial', (event) => {
+      const data = JSON.parse(event.data);
+      console.log('Initial data received:', data);
+    });
+
+    eventSource.addEventListener('log', (event) => {
+      const data = JSON.parse(event.data);
+      console.log('Log event:', data);
+    });
+
+    eventSource.addEventListener('session', (event) => {
+      const data = JSON.parse(event.data);
+      console.log('Session update:', data);
+
+      // If this is the currently viewed session, refresh it incrementally
+      if (currentSession && data.id === currentSession) {
+        loadSessionIncremental(currentSession);
+      }
+
+      // Refresh session list
+      loadSessions();
+    });
+
+    eventSource.addEventListener('heartbeat', (event) => {
+      const data = JSON.parse(event.data);
+      console.log('Heartbeat:', data);
+    });
+  } catch (error) {
+    console.error('Error creating EventSource:', error);
+    updateStatus('disconnected', 'Error');
+
+    // Retry on creation error too
+    if (!reconnectTimeout) {
+      reconnectTimeout = setTimeout(() => {
+        reconnectTimeout = null;
+        connectToHub();
+      }, 5000);
     }
-    
-    // Refresh session list
-    loadSessions();
-  });
-  
-  eventSource.addEventListener('heartbeat', (event) => {
-    const data = JSON.parse(event.data);
-    console.log('Heartbeat:', data);
-  });
+  }
 }
 
 // Update Connection Status
