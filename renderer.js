@@ -305,6 +305,7 @@ async function loadSessions() {
         </div>
       </div>
     `).join('');
+
   } catch (error) {
     console.error('Error loading sessions:', error);
     showNotification('Failed to load sessions', 'danger');
@@ -373,7 +374,7 @@ async function loadSessionIncremental(id) {
 // Render Session Content
 function renderSession(content, incremental = false) {
   const container = document.getElementById('chat-container');
-  const lines = content.split('\\n').filter(l => l.trim());
+  const lines = content.split('\n').filter(l => l.trim());
   
   if (lines.length === 0) {
     container.innerHTML = `
@@ -438,13 +439,13 @@ function createMessageBubble(entry, index) {
     contentText = msg.content
       .filter(c => c.type === 'text')
       .map(c => c.text || '')
-      .join('\\n');
+      .join('\n');
   } else {
     contentText = msg.content || '';
   }
   
   // Check if content should be truncated
-  const lineCount = contentText.split('\\n').length;
+  const lineCount = contentText.split('\n').length;
   const shouldTruncate = lineCount > maxLines;
   
   return `
@@ -488,7 +489,7 @@ function renderMarkdown(text) {
   let html = escapeHtml(text);
   
   // Code blocks
-  html = html.replace(/```(\w+)?\\n([\s\S]*?)```/g, (match, lang, code) => {
+  html = html.replace(/```(\w+)?\n([\s\S]*?)```/g, (match, lang, code) => {
     return `<pre><code>${code}</code></pre>`;
   });
   
@@ -505,7 +506,7 @@ function renderMarkdown(text) {
   html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
   
   // Line breaks
-  html = html.replace(/\\n/g, '<br>');
+  html = html.replace(/\n/g, '<br>');
   
   return html;
 }
@@ -554,7 +555,7 @@ async function exportToHTML() {
     const hubURL = getHubURL();
     const response = await fetch(hubURL + '/api/sessions/' + currentSession);
     const data = await response.json();
-    const lines = data.content.split('\\n').filter(l => l.trim());
+    const lines = data.content.split('\n').filter(l => l.trim());
     
     const messages = lines.map(line => {
       try {
@@ -678,7 +679,7 @@ async function exportToHTML() {
           contentText = msg.content
             .filter(c => c.type === 'text')
             .map(c => c.text || '')
-            .join('\\n');
+            .join('\n');
         } else {
           contentText = msg.content || '';
         }
