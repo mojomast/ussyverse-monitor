@@ -15,7 +15,7 @@ jobs:
   build-windows:
     name: Build on Windows
     runs-on: windows-latest
-    if: startsWith(github.ref, 'refs/tags/v') || contains(github.event.head_commit.message, 'v0.') || contains(github.event.head_commit.message, 'v1.') || github.event_name == 'workflow_dispatch'
+    if: startsWith(github.ref, 'refs/tags/v') || contains(github.event.head_commit.message, 'release v') || contains(github.event.head_commit.message, 'version v') || github.event_name == 'workflow_dispatch'
 
     steps:
       - name: Checkout repository
@@ -64,14 +64,14 @@ jobs:
 
       - name: Extract version from commit message
         id: extract_version
-        if: "!startsWith(github.ref, 'refs/tags/v') && (contains(github.event.head_commit.message, 'v0.') || contains(github.event.head_commit.message, 'v1.'))"
+        if: "!startsWith(github.ref, 'refs/tags/v') && (contains(github.event.head_commit.message, 'release v') || contains(github.event.head_commit.message, 'version v'))"
         shell: bash
         run: |
           COMMIT_MSG="${{ github.event.head_commit.message }}"
           echo "Commit message: $COMMIT_MSG"
           
-          # Extract version pattern like v0.1, v0.1.0, v1.0, etc.
-          VERSION=$(echo "$COMMIT_MSG" | grep -oP 'v\d+\.\d+(\.\d+)?' | head -1)
+          # Extract version pattern like v0.1, v0.1.0, v1.0, v2.5, etc. using portable regex
+          VERSION=$(echo "$COMMIT_MSG" | grep -oE 'v[0-9]+\.[0-9]+(\.[0-9]+)?' | head -1)
           
           if [ -z "$VERSION" ]; then
             echo "No version found in commit message"
