@@ -1,0 +1,44 @@
+{
+  "name": "ussyverse-monitor",
+  "version": "1.0.0",
+  "description": "Real-time monitoring dashboard for Ussyverse Hub sessions",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron . --no-sandbox",
+    "dev": "electron . --dev --no-sandbox",
+    "build": "electron-builder --win",
+    "build:win": "electron-builder --win"
+  },
+  "keywords": [
+    "ussyverse",
+    "monitoring",
+    "dashboard",
+    "electron"
+  ],
+  "author": "Clawussy",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^28.0.0",
+    "electron-builder": "^26.7.0"
+  },
+  "dependencies": {
+    "marked": "^11.1.0"
+  },
+  "build": {
+    "appId": "com.clawussy.usverse-monitor",
+    "productName": "Ussyverse Monitor",
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": "nsis",
+      "icon": "icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
+  }
+}
